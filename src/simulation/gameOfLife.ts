@@ -1,22 +1,30 @@
-import vertexShader from "../../shaders/gameOfLife.vert?raw";
-import fragmentShader from "../../shaders/gameOfLife.frag?raw";
-import multiChannelFragmentShader from "../../shaders/gameOfLifeMultiChannel.frag?raw";
-import { createShaderModule } from "../rendering/shaders.ts";
 import { loadImage } from "../util/image.ts";
-import { blitFramebuffer, createFrameBuffer, Framebuffer, resizeFramebuffer } from "../rendering/framebuffer.ts";
-import { createFullScreenTriangle, Mesh } from "../rendering/fullScreenTriangle.ts";
+import { blitFramebuffer, Framebuffer, resizeFramebuffer } from "../rendering/framebuffer.ts";
+import { Mesh } from "../rendering/fullScreenTriangle.ts";
 import { scheduleAnimationFrame } from "../util/scheduling.ts";
+import { init, initListeners } from "./setup.ts";
+
+export type SimulationState = {
+  shader: WebGLProgram,
+  singleChannelShader: WebGLProgram,
+  multiChannelShader: WebGLProgram,
+  framebuffers: Framebuffer[],
+  mesh: Mesh
+};
 
 export async function runSimulation(gl: WebGL2RenderingContext, initialImage: string): Promise<boolean> {
   const image = await loadImage(initialImage);
-  const initResult = init(gl, image);
-  if (!initResult) {
+  let state = init(gl, image);
+  if (state === null) {
     return false;
   }
-  const { shader, framebuffers, mesh } = initResult;
+
+  initListeners(gl, state);
+
   const shouldDraw = true;
   while (shouldDraw) {
-    update(gl, shader, framebuffers);
+    state = update(gl, state);
+    const { shader, framebuffers, mesh } = state;
     await scheduleAnimationFrame();
     draw(gl, shader, framebuffers, mesh);
   }
@@ -24,62 +32,25 @@ export async function runSimulation(gl: WebGL2RenderingContext, initialImage: st
   return true;
 }
 
-function init(gl: WebGL2RenderingContext, image: HTMLImageElement) {
-  const singleChannelShader = createShaderModule(gl, vertexShader, fragmentShader);
-  if (singleChannelShader == null) {
-    return null;
-  }
+function update(gl: WebGL2RenderingContext, state: SimulationState): SimulationState {
+  let [drawFramebuffer, readFramebuffer] = state.framebuffers;
 
-  const multiChannelShader = createShaderModule(gl, vertexShader, multiChannelFragmentShader);
-  if (multiChannelShader == null) {
-    gl.deleteProgram(singleChannelShader);
-    return null;
-  }
-
-  const mesh = createFullScreenTriangle(gl);
-  if (mesh === null) {
-    gl.deleteProgram(singleChannelShader);
-    gl.deleteProgram(singleChannelShader);
-    return null;
-  }
-
-  const framebuffers = [
-    createFrameBuffer(gl, { source: "image", image }),
-    createFrameBuffer(gl, { source: "image", image })
-  ];
-
-  if (framebuffers.some(framebuffer => framebuffer === null)) {
-    framebuffers.forEach(gl.deleteFramebuffer);
-    gl.deleteProgram(singleChannelShader);
-    gl.deleteProgram(singleChannelShader);
-    return null;
-  }
-
-  return {
-    shader: multiChannelShader,
-    singleChannelShader,
-    multiChannelShader,
-    framebuffers:
-      framebuffers as Framebuffer[], mesh
-  };
-}
-
-function update(gl: WebGL2RenderingContext, _shader: WebGLProgram, framebuffers: Framebuffer[]) {
-  let [drawFramebuffer, readFramebuffer] = framebuffers;
-
-  if (framebuffers[0].width != gl.canvas.width || framebuffers[0].height != gl.canvas.height) {
+  if (drawFramebuffer.width != gl.canvas.width || drawFramebuffer.height != gl.canvas.height) {
     drawFramebuffer = resizeFramebuffer(gl, drawFramebuffer, gl.canvas.width, gl.canvas.height);
     readFramebuffer = resizeFramebuffer(gl, readFramebuffer, gl.canvas.width, gl.canvas.height);
   }
 
-  framebuffers[0] = readFramebuffer;
-  framebuffers[1] = drawFramebuffer;
+  state.framebuffers[0] = readFramebuffer;
+  state.framebuffers[1] = drawFramebuffer;
+  return state;
 }
 
 function draw(gl: WebGL2RenderingContext, shader: WebGLProgram, framebuffers: Framebuffer[], mesh: Mesh) {
   const [drawFramebuffer, readFramebuffer] = framebuffers;
   gl.bindFramebuffer(gl.FRAMEBUFFER, drawFramebuffer.framebuffer);
-  gl.viewport(0, 0, drawFramebuffer.width, drawFramebuffer.height);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.viewport(1, 1, drawFramebuffer.width - 1, drawFramebuffer.height - 1);
   gl.useProgram(shader);
 
   gl.activeTexture(gl.TEXTURE0);

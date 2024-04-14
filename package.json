@@ -9,11 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/color": "^3.0.6",
     "prettier": "3.2.5",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
   },
   "dependencies": {
+    "color": "^4.2.3",
     "normalize.css": "^8.0.1"
   }
 }

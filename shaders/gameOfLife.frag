@@ -5,7 +5,6 @@ out vec4 color;
 
 uniform sampler2D state;
 
-// todo address out of bounds indexing. Is robust buffer access enabled in webgl?
 int aliveCellAt(ivec2 location) {
     return int(texelFetch(state, location, 0).rgb != vec3(0));
 }

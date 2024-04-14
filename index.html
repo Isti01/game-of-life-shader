@@ -1,11 +1,23 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game Of Life Shader</title>
-  </head>
-  <body>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Of Life Shader</title>
+</head>
+<body>
+<div class="controls">
+  <h1>Controls</h1>
+  <label for="use-multichannel">
+    Run simulation in multiple color channels
+    <input id="use-multichannel" name="use-multichannel" type="checkbox">
+  </label>
+  <label for="color">
+    Drawing color (anything above 0 is alive)
+    <input id="color" name="color" type="color" value="#ffffff">
+  </label>
+  <span>You can draw while holding left mouse button</span>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
 </html>

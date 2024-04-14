@@ -1,5 +1,6 @@
 import vertexShader from "../../shaders/gameOfLife.vert?raw";
 import fragmentShader from "../../shaders/gameOfLife.frag?raw";
+import multiChannelFragmentShader from "../../shaders/gameOfLifeMultiChannel.frag?raw";
 import { createShaderModule } from "../rendering/shaders.ts";
 import { loadImage } from "../util/image.ts";
 import { blitFramebuffer, createFrameBuffer, Framebuffer, resizeFramebuffer } from "../rendering/framebuffer.ts";
@@ -24,14 +25,21 @@ export async function runSimulation(gl: WebGL2RenderingContext, initialImage: st
 }
 
 function init(gl: WebGL2RenderingContext, image: HTMLImageElement) {
-  const shader = createShaderModule(gl, vertexShader, fragmentShader);
-  if (shader == null) {
+  const singleChannelShader = createShaderModule(gl, vertexShader, fragmentShader);
+  if (singleChannelShader == null) {
+    return null;
+  }
+
+  const multiChannelShader = createShaderModule(gl, vertexShader, multiChannelFragmentShader);
+  if (multiChannelShader == null) {
+    gl.deleteProgram(singleChannelShader);
     return null;
   }
 
   const mesh = createFullScreenTriangle(gl);
   if (mesh === null) {
-    gl.deleteProgram(shader);
+    gl.deleteProgram(singleChannelShader);
+    gl.deleteProgram(singleChannelShader);
     return null;
   }
 
@@ -42,10 +50,18 @@ function init(gl: WebGL2RenderingContext, image: HTMLImageElement) {
 
   if (framebuffers.some(framebuffer => framebuffer === null)) {
     framebuffers.forEach(gl.deleteFramebuffer);
+    gl.deleteProgram(singleChannelShader);
+    gl.deleteProgram(singleChannelShader);
     return null;
   }
 
-  return { shader, framebuffers: framebuffers as Framebuffer[], mesh };
+  return {
+    shader: multiChannelShader,
+    singleChannelShader,
+    multiChannelShader,
+    framebuffers:
+      framebuffers as Framebuffer[], mesh
+  };
 }
 
 function update(gl: WebGL2RenderingContext, _shader: WebGLProgram, framebuffers: Framebuffer[]) {

@@ -4,6 +4,7 @@ import starterImage from "../assets/starter.png";
 import { runSimulation } from "./simulation/gameOfLife.ts";
 
 const canvas = document.createElement("canvas");
+// we need antialias false to be able to blit into the default framebuffer
 const gl = canvas.getContext("webgl2", { antialias: false });
 
 if (gl === null) {

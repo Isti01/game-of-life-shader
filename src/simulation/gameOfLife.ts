@@ -17,10 +17,6 @@ export async function runSimulation(gl: WebGL2RenderingContext, initialImage: st
 }
 
 function init(gl: WebGL2RenderingContext, image: HTMLImageElement) {
-  gl.disable(gl.DEPTH_TEST);
-  gl.disable(gl.BLEND);
-  gl.disable(gl.CULL_FACE);
-
   const shader = createShaderModule(gl, vertexShader, fragmentShader);
   if (shader == null) {
     return null;
@@ -50,10 +46,7 @@ function draw(gl: WebGL2RenderingContext, shader: WebGLProgram, framebuffers: Fr
     const [drawFramebuffer, readFramebuffer] = framebuffers;
     gl.bindFramebuffer(gl.FRAMEBUFFER, drawFramebuffer.framebuffer);
     gl.viewport(0, 0, drawFramebuffer.width, drawFramebuffer.height);
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(shader);
-    gl.bindAttribLocation(shader, 0, "uvIn");
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, readFramebuffer.colorAttachment);
@@ -63,16 +56,13 @@ function draw(gl: WebGL2RenderingContext, shader: WebGLProgram, framebuffers: Fr
     gl.drawArrays(mesh.primitiveType, 0, mesh.primitiveCount);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.clearColor(0.3, 0.3, 0.3, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, drawFramebuffer.framebuffer);
-    gl.blitFramebuffer(0, 0, drawFramebuffer.width, drawFramebuffer.height, gl.canvas.width, gl.canvas.height, 0, 0, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.blitFramebuffer(0, 0, drawFramebuffer.width, drawFramebuffer.height, 0, 0, gl.canvas.width, gl.canvas.height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
 
-    const temp = framebuffers[0];
-    framebuffers[0] = framebuffers[1];
-    framebuffers[1] = temp;
+    framebuffers[0] = readFramebuffer;
+    framebuffers[1] = drawFramebuffer;
     draw(gl, shader, framebuffers, mesh);
   });
 }
